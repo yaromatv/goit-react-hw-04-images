@@ -1,31 +1,24 @@
 import PropTypes from 'prop-types';
-import { Component } from 'react';
 import css from './ImageGalleryItem.module.css';
 
-class ImageGalleryItem extends Component {
-  handleClick = event => {
+const ImageGalleryItem = ({ onClick, data }) => {
+  const handleClick = event => {
     const img = event.target.getAttribute('alt');
-    this.props.onClick(img);
+    onClick(img);
   };
 
-  render() {
-    return this.props.data.map(({ id, webformatURL, largeImageURL }) => {
-      return (
-        <li
-          key={id}
-          onClick={this.handleClick}
-          className={css.ImageGalleryItem}
-        >
-          <img
-            className={css.ImageGalleryItem_image}
-            src={webformatURL}
-            alt={largeImageURL}
-          />
-        </li>
-      );
-    });
-  }
-}
+  return data.map(({ id, webformatURL, largeImageURL }) => {
+    return (
+      <li key={id} onClick={handleClick} className={css.ImageGalleryItem}>
+        <img
+          className={css.ImageGalleryItem_image}
+          src={webformatURL}
+          alt={largeImageURL}
+        />
+      </li>
+    );
+  });
+};
 
 ImageGalleryItem.propTypes = {
   data: PropTypes.arrayOf(

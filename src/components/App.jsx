@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import Searchbar from 'components/Searchbar';
 import ImageGallery from 'components/ImageGallery';
 import ImageGalleryItem from 'components/ImageGallery/ImageGalleryItem';
@@ -8,51 +8,75 @@ import Button from 'components/Button';
 
 const API_KEY = '37654239-10094e2a01db37edd26da2ebf';
 
-class App extends Component {
-  state = {
-    query: '',
-    data: [],
-    error: null,
-    page: 1,
-    modalImg: '',
-    status: 'idle',
-  };
+const App = () => {
+  const [query, setQuery] = useState('');
+  const [data, setData] = useState([]);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [modalImg, setModalImg] = useState('');
+  const [status, setStatus] = useState('idle');
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.query !== this.state.query) {
-      this.setState({ page: 1, status: 'loading' }, () =>
-        this.fetchData(this.state.query)
-          .then(data => {
-            this.setState({ data, status: 'ready' });
-          })
-          .catch(error => this.setState({ error, status: 'error' }))
-      );
+  useEffect(() => {
+    if (!query) {
+      return;
     }
-  }
 
-  handleSearch = query => {
-    this.setState({ query });
+    // setPage(1);
+    setStatus('loading');
+
+    fetchData(query)
+      .then(data => {
+        setData(data);
+        setStatus('ready');
+      })
+      .catch(error => {
+        setError(error);
+        setStatus('error');
+      });
+  }, [query]);
+
+  useEffect(() => {
+    if (page === 1) {
+      return;
+    }
+    setStatus('load-more');
+
+    fetchData(query)
+      .then(data => {
+        setData(prevState => [...prevState, ...data]);
+        setStatus('ready');
+      })
+      .catch(error => {
+        setError(error);
+        setStatus('error');
+      });
+  }, [page]);
+
+  const fetchData = query => {
+    return fetch(
+      `https://pixabay.com/api/?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`
+    )
+      .then(response => response.json())
+      .then(data => data.hits)
+      .catch(error => {
+        throw error;
+      });
   };
 
-  async fetchData(query) {
-    const response = await fetch(
-      `https://pixabay.com/api/?q=${query}&page=${this.state.page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`
-    );
-    const data = await response.json();
-    // this.setState({ data: data.hits });
-    return data.hits;
-  }
-
-  getModalImg = modalImg => {
-    this.setState({ modalImg });
+  const handleSearch = query => {
+    setQuery(query);
+    setPage(1);
   };
 
-  resetModalImg = () => {
-    this.setState({ modalImg: '' });
+  const getModalImg = modalImg => {
+    setModalImg(modalImg);
   };
 
-  toggleBodyScroll = () => {
-    const { modalImg } = this.state;
+  const resetModalImg = () => {
+    setModalImg('');
+  };
+
+  const toggleBodyScroll = () => {
     if (modalImg) {
       document.body.classList.add('fixed');
     } else {
@@ -60,113 +84,96 @@ class App extends Component {
     }
   };
 
-  handleButtonClick = () => {
-    this.setState(
-      prevState => ({
-        page: prevState.page + 1,
-        status: 'load-more',
-      }),
-      () => {
-        this.fetchData(this.state.query)
-          .then(data =>
-            this.setState(prevState => ({
-              data: [...prevState.data, ...data],
-              status: 'ready',
-            }))
-          )
-          .catch(error => this.setState({ error, status: 'error' }));
-      }
+  const handleButtonClick = () => {
+    setPage(prevState => prevState + 1);
+  };
+
+  const renderSearchbar = () => {
+    return <Searchbar onSubmit={handleSearch} />;
+  };
+
+  const renderImageGallery = () => {
+    return (
+      <ImageGallery>
+        <ImageGalleryItem data={data} onClick={getModalImg} />
+      </ImageGallery>
     );
   };
 
-  renderSearchbar() {
-    return <Searchbar onSubmit={this.handleSearch} />;
-  }
-
-  renderImageGallery() {
-    return (
-      <ImageGallery>
-        <ImageGalleryItem data={this.state.data} onClick={this.getModalImg} />
-      </ImageGallery>
-    );
-  }
-
-  renderModal() {
-    if (this.state.modalImg) {
+  const renderModal = () => {
+    if (modalImg) {
       return (
         <Modal
-          modalImg={this.state.modalImg}
-          resetImg={this.resetModalImg}
-          toggleScroll={this.toggleBodyScroll}
+          modalImg={modalImg}
+          resetImg={resetModalImg}
+          toggleScroll={toggleBodyScroll}
         />
       );
     }
     return null;
-  }
+  };
 
-  renderButton() {
-    return <Button onClick={this.handleButtonClick} />;
-  }
+  const renderButton = () => {
+    return <Button onClick={handleButtonClick} />;
+  };
 
-  renderLoader() {
+  const renderLoader = () => {
     return <Loader />;
-  }
+  };
 
-  renderError() {
+  const renderError = () => {
     return (
       <div className="App">
-        {this.renderSearchbar()}
-        <h1>{this.state.error}</h1>
+        {renderSearchbar()}
+        <h1>{error}</h1>
       </div>
     );
-  }
+  };
 
-  renderContent() {
-    switch (this.state.status) {
+  const renderContent = () => {
+    switch (status) {
       case 'idle':
-        return this.renderSearchbar();
+        return renderSearchbar();
 
       case 'loading':
         return (
           <div className="App">
-            {this.renderSearchbar()}
-            {this.renderLoader()}
+            {renderSearchbar()}
+            {renderLoader()}
           </div>
         );
 
       case 'load-more':
         return (
           <div className="App">
-            {this.renderSearchbar()}
-            {this.renderImageGallery()}
-            {this.renderModal()}
-            {this.renderButton()}
-            {this.renderLoader()}
+            {renderSearchbar()}
+            {renderImageGallery()}
+            {renderModal()}
+            {renderButton()}
+            {renderLoader()}
           </div>
         );
 
       case 'ready':
         return (
           <div className="App">
-            {this.renderSearchbar()}
-            {this.renderImageGallery()}
-            {this.renderModal()}
-            {this.renderButton()}
+            {renderSearchbar()}
+            {renderImageGallery()}
+            {renderModal()}
+            {renderButton()}
           </div>
         );
 
       case 'error':
-        return this.renderError();
+        return renderError();
 
       default:
         return null;
     }
-  }
+  };
 
-  render() {
-    return this.renderContent();
-  }
-}
+  return renderContent();
+};
 
 // STATE MACHINE
 // render() {
