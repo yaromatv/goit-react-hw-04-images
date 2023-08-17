@@ -17,55 +17,96 @@ const App = () => {
   const [status, setStatus] = useState('idle');
 
   useEffect(() => {
+    const fetchData = query => {
+      return fetch(
+        `https://pixabay.com/api/?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`
+      )
+        .then(response => response.json())
+        .then(data => data.hits)
+        .catch(error => {
+          throw error;
+        });
+    };
+
     if (!query) {
       return;
     }
 
-    // setPage(1);
-    setStatus('loading');
-
-    fetchData(query)
-      .then(data => {
-        setData(data);
-        setStatus('ready');
-      })
-      .catch(error => {
-        setError(error);
-        setStatus('error');
-      });
-  }, [query]);
-
-  useEffect(() => {
     if (page === 1) {
+      setStatus('loading');
+
+      fetchData(query)
+        .then(data => {
+          setData(data);
+          setStatus('ready');
+        })
+        .catch(error => {
+          setError(error);
+          setStatus('error');
+        });
       return;
     }
-    setStatus('load-more');
 
-    fetchData(query)
-      .then(data => {
-        setData(prevState => [...prevState, ...data]);
-        setStatus('ready');
-      })
-      .catch(error => {
-        setError(error);
-        setStatus('error');
-      });
-  }, [page]);
+    if (page !== 1) {
+      setStatus('load-more');
 
-  const fetchData = query => {
-    return fetch(
-      `https://pixabay.com/api/?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`
-    )
-      .then(response => response.json())
-      .then(data => data.hits)
-      .catch(error => {
-        throw error;
-      });
-  };
+      fetchData(query)
+        .then(data => {
+          setData(prevState => [...prevState, ...data]);
+          setStatus('ready');
+        })
+        .catch(error => {
+          setError(error);
+          setStatus('error');
+        });
+      return;
+    }
+  }, [page, query]);
+
+  // // FETCH QUERY
+  // useEffect(() => {
+  //   if (!query) {
+  //     return;
+  //   }
+
+  //   setStatus('loading');
+
+  //   fetchData(query)
+  //     .then(data => {
+  //       setData(data);
+  //       setStatus('ready');
+  //     })
+  //     .catch(error => {
+  //       setError(error);
+  //       setStatus('error');
+  //     });
+  // }, [query]);
+
+  // // LOAD MORE
+  // useEffect(() => {
+  //   if (page === 1) {
+  //     return;
+  //   }
+  //   setStatus('load-more');
+
+  //   fetchData(query)
+  //     .then(data => {
+  //       setData(prevState => [...prevState, ...data]);
+  //       setStatus('ready');
+  //     })
+  //     .catch(error => {
+  //       setError(error);
+  //       setStatus('error');
+  //     });
+  // }, [page]);
 
   const handleSearch = query => {
     setQuery(query);
     setPage(1);
+  };
+
+  const handleButtonClick = () => {
+    setPage(prevState => prevState + 1);
   };
 
   const getModalImg = modalImg => {
@@ -84,10 +125,7 @@ const App = () => {
     }
   };
 
-  const handleButtonClick = () => {
-    setPage(prevState => prevState + 1);
-  };
-
+  // RENDER
   const renderSearchbar = () => {
     return <Searchbar onSubmit={handleSearch} />;
   };
